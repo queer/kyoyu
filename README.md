@@ -7,7 +7,7 @@
 > 1. sharing
 >
 > ### Verb
-# 1. to share
+> # 1. to share
 >
 > ## Share
 > /SHer/ • *verb*
