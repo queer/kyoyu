@@ -1,3 +1,4 @@
+extern crate base64;
 extern crate image;
 extern crate scrap;
 
@@ -5,11 +6,102 @@ use std::io::ErrorKind;
 use std::thread;
 use std::time::Duration;
 
-fn main() {
-    capture_screenshot();
+use iced::Application;
+
+#[derive(Default)]
+struct Ui {
+    /// A buffer of png-encoded bytes representing the last full screen
+    /// capture.
+    screen_buffer: Option<Vec<u8>>,
+    /// The state of the capture button.
+    capture_button: iced::button::State,
+    /// The last error message
+    last_error: String,
 }
 
-fn capture_screenshot() {
+impl iced::Application for Ui {
+    type Executor = iced::executor::Default;
+    type Message = Message;
+    type Flags = ();
+
+    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        (Self::default(), iced::Command::none())
+    }
+
+    fn title(&self) -> String {
+        String::from("kyoyu")
+    }
+
+    fn view(&mut self) -> iced::Element<Self::Message> {
+        let image = if let Some(buffer) = &self.screen_buffer {
+            println!(
+                "kyoyu: ui: rendering buffer len={}",
+                buffer.len()
+            );
+            // We can't pass a reference to the buffer to the image, so we
+            // have to clone it here :<
+            iced::Container::new(iced::Image::new(iced::image::Handle::from_memory(
+                buffer.clone(),
+            )))
+        } else {
+            iced::Container::new(iced::Text::new("no screenshot yet"))
+        };
+
+        iced::Column::new()
+            .push(iced::Text::new("kyoyu"))
+            .push(iced::Text::new(format!("last error: {}", self.last_error)))
+            .push(
+                iced::Button::new(&mut self.capture_button, iced::Text::new("capture"))
+                    .on_press(Message::CaptureRequested),
+            )
+            .push(image)
+            .into()
+    }
+
+    fn update(&mut self, msg: Self::Message) -> iced::Command<Self::Message> {
+        match msg {
+            Message::CaptureRequested => {
+                println!("kyoyu: ui: capture requested");
+                iced::Command::perform(capture_screenshot(), |result| {
+                    println!("kyoyu: ui: async capture complete");
+                    match result {
+                        Ok(buffer) => Message::CaptureComplete(buffer),
+                        Err(err) => Message::CaptureFailed(String::from(&format!(
+                            "couldn't capture displays: {:#?}",
+                            err
+                        ))),
+                    }
+                })
+            }
+            Message::CaptureComplete(buffer) => {
+                println!("kyoyu: ui: capture_complete");
+                self.screen_buffer = Some(buffer);
+                self.last_error = "displays captured without error".to_string();
+                iced::Command::none()
+            }
+            Message::CaptureFailed(err) => {
+                println!("kyoyu: ui: capture_failed");
+                self.last_error = err;
+                iced::Command::none()
+            } // _ => iced::Command::none(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Message {
+    CaptureRequested,
+    CaptureComplete(Vec<u8>),
+    CaptureFailed(String),
+}
+
+fn main() -> iced::Result {
+    Ui::run(iced::Settings::default())
+}
+
+/// Capture a screenshot of the entire display, returning a vec of png-encoded
+/// bytes that represent the captured image.
+async fn capture_screenshot() -> Result<Vec<u8>, image::ImageError> {
     println!("kyoyu: setup: start");
 
     match scrap::Display::all() {
@@ -49,35 +141,21 @@ fn capture_screenshot() {
                 for nx in 0..iw {
                     for ny in 0..ih {
                         let i = stride * ny + 3 * nx;
-                        let pixel = image::Rgb(
-                            [
-                                buffer[i],
-                                buffer[i + 1],
-                                buffer[i + 2],
-                            ]
-                        );
+                        let pixel = image::Rgb([buffer[i], buffer[i + 1], buffer[i + 2]]);
                         canvas.put_pixel((ix + nx) as u32, (iy + ny) as u32, pixel);
                     }
                 }
             }
-            println!("kyoyu: output: saving");
-            canvas.save("screenshot.png").unwrap();
+
+            let mut out: Vec<u8> = Vec::with_capacity(canvas.len());
+            let writer = std::io::BufWriter::new(&mut out);
+            let encoder = image::png::PngEncoder::new(writer);
+            encoder.encode(&canvas, w as u32, h as u32, image::ColorType::Rgb8)?;
+
+            Ok(out)
         }
         Err(_) => panic!("kyoyu: display: couldn't get all displays"),
     }
-
-    // let path = Path::new(r"screenshot.png");
-    // let file = File::create(path).unwrap();
-    // let ref mut writer = BufWriter::new(file);
-
-    // let mut encoder = png::Encoder::new(writer, w as u32, h as u32);
-    // encoder.set_color(png::ColorType::RGB);
-    // encoder.set_depth(png::BitDepth::Eight);
-    // let mut writer = encoder.write_header().unwrap();
-
-    // writer.write_image_data(&flipped).unwrap();
-
-    // println!("kyoyu: capture: saved screenshot.png");
 }
 
 /// Capture all provided displays, returning a vec of tuples of image buffers +
@@ -133,7 +211,7 @@ fn capture_display(display: scrap::Display) -> Vec<u8> {
         }
     }
 
-    println!("kyoyu: buffer: flipped");
+    println!("kyoyu: buffer: flipped (size={})", flipped.len());
 
     flipped
 }
