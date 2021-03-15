@@ -1,7 +1,7 @@
 # 共有
 
 > ## 共有
-> [/kʲo̞ːjɯ̟ᵝː/ • kyo-yu](https://en.wiktionary.org/wiki/%E5%85%B1%E6%9C%89#Pronunciation_2') <sup><sup>(try it with [IPA Reader](http://ipa-reader.xyz))</sup></sup>
+> [/kʲo̞ːjɯ̟ᵝː/ • kyo-yu](https://en.wiktionary.org/wiki/%E5%85%B1%E6%9C%89#Pronunciation_2) <sup><sup>(try it with [IPA Reader](http://ipa-reader.xyz))</sup></sup>
 >
 > ### Noun
 > 1. sharing
