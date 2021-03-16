@@ -43,8 +43,13 @@ pub async fn capture_screenshot() -> Result<(Vec<u8>, u32, u32), image::ImageErr
                 );
                 for nx in 0..iw {
                     for ny in 0..ih {
-                        let i = stride * ny + 3 * nx;
-                        let pixel = image::Rgb([buffer[i], buffer[i + 1], buffer[i + 2]]);
+                        // 4 = bytes per pixel
+                        let bpp = 3; // 4;
+                        let i = stride * ny + bpp * nx;
+                        // let pixel =
+                        //     image::Rgba([buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]]);
+                        let pixel =
+                            image::Rgb([buffer[i], buffer[i + 1], buffer[i + 2]]);
                         canvas.put_pixel((ix + nx) as u32, (iy + ny) as u32, pixel);
                     }
                 }
@@ -100,16 +105,44 @@ fn capture_display(display: scrap::Display) -> Vec<u8> {
 
     info!("kyoyu: frame: captured");
 
-    let mut flipped = Vec::with_capacity(w * h * 3);
+    info!(
+        "kyoyu: buffer: flipping ARGB -> BGR (size={})",
+        buffer.len()
+    );
+
+    flip_buffer(&buffer.to_vec(), w, h, false)
+    // buffer.to_vec()
+}
+
+#[allow(dead_code)]
+fn flip_buffer(buffer: &Vec<u8>, w: usize, h: usize, alpha: bool) -> Vec<u8> {
+    info!("kyoyu: buffer: flip: input = {}", buffer.len());
+    let bytes = if alpha { 4 } else { 3 };
+    let mut flipped = Vec::with_capacity(w * h * bytes);
     let stride = buffer.len() / h;
+
     for y in 0..h {
         for x in 0..w {
+            // 4 because the input buffer always has alpha
             let i = stride * y + 4 * x;
-            flipped.extend_from_slice(&[buffer[i + 2], buffer[i + 1], buffer[i]]);
+            // [A, R, G, B]
+            // [0, 1, 2, 3]
+            // [B, G, R, A]
+            // [3, 2, 1, 0]
+            if alpha {
+                flipped.extend_from_slice(&[
+                    buffer[i + 3],
+                    buffer[i + 2],
+                    buffer[i + 1],
+                    buffer[i],
+                ]);
+            } else {
+                flipped.extend_from_slice(&[buffer[i + 2], buffer[i + 1], buffer[i]]);
+            };
         }
     }
 
-    info!("kyoyu: buffer: flipped (size={})", flipped.len());
+    info!("kyoyu: buffer: flip: output = {}", flipped.len());
 
     flipped
 }

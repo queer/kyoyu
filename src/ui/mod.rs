@@ -20,6 +20,8 @@ struct Ui {
     /// A buffer of png-encoded bytes representing the last full screen
     /// capture.
     screen_buffer: Option<Vec<u8>>,
+    width: u32,
+    height: u32,
     /// The state of the capture button.
     capture_button: iced::button::State,
     /// The last error message
@@ -44,7 +46,12 @@ impl iced::Application for Ui {
             info!("kyoyu: ui: rendering buffer len={}", buffer.len());
             // We can't pass a reference to the buffer to the image, so we
             // have to clone it here :<
-            iced::Container::new(iced::Image::new(iced::image::Handle::from_memory(
+            // iced::Container::new(iced::Image::new(iced::image::Handle::from_memory(
+            //     buffer.clone(),
+            // )))
+            iced::Container::new(iced::Image::new(iced::image::Handle::from_pixels(
+                self.width,
+                self.height,
                 buffer.clone(),
             )))
         } else {
@@ -80,17 +87,22 @@ impl iced::Application for Ui {
             Message::CaptureComplete(buffer, w, h) => {
                 info!("kyoyu: ui: capture_complete");
                 self.last_error = "displays captured without error".to_string();
+                self.width = w;
+                self.height = h;
                 // TODO: Can we avoid cloning this buffer?
-                iced::Command::perform(utils::encode_buffer_to_png(buffer.clone(), w, h), |result| {
-                    info!("kyoyu: ui: encoded buffer");
-                    match result {
-                        Ok(buffer) => Message::CaptureEncoded(buffer),
-                        Err(err) => Message::CaptureFailed(String::from(&format!(
-                            "couldn't encode buffer: {:#?}",
-                            err
-                        ))),
-                    }
-                })
+                iced::Command::perform(
+                    utils::encode_buffer_to_png(buffer.clone(), w, h),
+                    |result| {
+                        info!("kyoyu: ui: encoded buffer");
+                        match result {
+                            Ok(buffer) => Message::CaptureEncoded(buffer),
+                            Err(err) => Message::CaptureFailed(String::from(&format!(
+                                "couldn't encode buffer: {:#?}",
+                                err
+                            ))),
+                        }
+                    },
+                )
             }
             Message::CaptureEncoded(buffer) => {
                 info!("kyoyu: ui: buffer encoded");

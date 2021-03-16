@@ -12,10 +12,8 @@ mod utils;
 use std::env;
 
 fn main() -> iced::Result {
-    // Set log level to make sure
-    if env::var("RUST_LOG").unwrap_or("debug".into()) != "info" {
-        env::set_var("RUST_LOG", "info");
-    }
+    env::set_var("RUST_LOG", "info");
+    env::set_var("RUST_BACKTRACE", "1");
     pretty_env_logger::init();
     info!("main: booting");
     ui::run()
