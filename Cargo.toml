@@ -5,10 +5,9 @@ authors = ["amy null <null@amy.gg>"]
 edition = "2018"
 
 [dependencies]
-scrap = { git = "https://github.com/queer/scrap.git", rev = "1ab2fdffbc9375e923797a3b2a8319b90f0e6ab4" }
+directories = "3.0.1"
 iced = { version = "0.2.0", features = [ "image" ] }
 image = "0.23.14"
 log = "0.4.14"
-png = "0.16.8"
 pretty_env_logger = "0.4.0"
-base64 = "0.13.0"
+scrap = { git = "https://github.com/queer/scrap.git", rev = "1ab2fdffbc9375e923797a3b2a8319b90f0e6ab4" }

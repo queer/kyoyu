@@ -17,3 +17,16 @@ pub async fn encode_buffer_to_png(
     }
     Ok(out)
 }
+
+pub enum CaptureStatus {
+    Ready,
+    CapturingDisplays,
+    EncodingBuffer,
+    Captured,
+}
+
+impl Default for CaptureStatus {
+    fn default() -> Self {
+        Self::Ready
+    }
+}

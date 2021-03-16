@@ -48,8 +48,7 @@ pub async fn capture_screenshot() -> Result<(Vec<u8>, u32, u32), image::ImageErr
                         let i = stride * ny + bpp * nx;
                         // let pixel =
                         //     image::Rgba([buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]]);
-                        let pixel =
-                            image::Rgb([buffer[i], buffer[i + 1], buffer[i + 2]]);
+                        let pixel = image::Rgb([buffer[i], buffer[i + 1], buffer[i + 2]]);
                         canvas.put_pixel((ix + nx) as u32, (iy + ny) as u32, pixel);
                     }
                 }

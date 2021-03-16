@@ -1,5 +1,6 @@
 use crate::capture::screenshot;
 use crate::utils;
+use crate::utils::CaptureStatus;
 
 use iced::Application;
 
@@ -26,6 +27,7 @@ struct Ui {
     capture_button: iced::button::State,
     /// The last error message
     last_error: String,
+    capture_status: CaptureStatus,
 }
 
 impl iced::Application for Ui {
@@ -73,6 +75,8 @@ impl iced::Application for Ui {
         match msg {
             Message::CaptureRequested => {
                 info!("kyoyu: ui: capture requested");
+                self.capture_status = CaptureStatus::CapturingDisplays;
+
                 iced::Command::perform(screenshot::capture_screenshot(), |result| {
                     info!("kyoyu: ui: async capture complete");
                     match result {
@@ -86,9 +90,11 @@ impl iced::Application for Ui {
             }
             Message::CaptureComplete(buffer, w, h) => {
                 info!("kyoyu: ui: capture_complete");
+                self.capture_status = CaptureStatus::EncodingBuffer;
                 self.last_error = "displays captured without error".to_string();
                 self.width = w;
                 self.height = h;
+
                 // TODO: Can we avoid cloning this buffer?
                 iced::Command::perform(
                     utils::encode_buffer_to_png(buffer.clone(), w, h),
@@ -106,13 +112,16 @@ impl iced::Application for Ui {
             }
             Message::CaptureEncoded(buffer) => {
                 info!("kyoyu: ui: buffer encoded");
+                self.capture_status = CaptureStatus::Captured;
                 self.screen_buffer = Some(buffer);
                 self.last_error = "buffer encoded without error".to_string();
+
                 iced::Command::none()
             }
             Message::CaptureFailed(err) => {
                 info!("kyoyu: ui: capture_failed");
                 self.last_error = err;
+
                 iced::Command::none()
             } // _ => iced::Command::none(),
         }
