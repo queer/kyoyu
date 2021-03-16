@@ -60,14 +60,26 @@ impl iced::Application for Ui {
             iced::Container::new(iced::Text::new("no screenshot yet"))
         };
 
+        let capture_status = match self.capture_status {
+            CaptureStatus::Ready => "ready to capture!",
+            CaptureStatus::CapturingDisplays => "capturing displays...",
+            CaptureStatus::EncodingBuffer => "encoding capture...",
+            CaptureStatus::Captured => "captured!",
+        };
+
         iced::Column::new()
             .push(iced::Text::new("kyoyu"))
+            .push(iced::Text::new(format!(
+                "capture status: {}",
+                capture_status
+            )))
             .push(iced::Text::new(format!("last error: {}", self.last_error)))
             .push(
                 iced::Button::new(&mut self.capture_button, iced::Text::new("capture"))
                     .on_press(Message::CaptureRequested),
             )
             .push(image)
+            .spacing(20)
             .into()
     }
 
