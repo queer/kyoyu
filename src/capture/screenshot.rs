@@ -1,10 +1,12 @@
+use crate::utils::{Buffer, Dimension};
+
 use std::io::ErrorKind;
 use std::thread;
 use std::time::Duration;
 
 /// Capture a screenshot of the entire display, returning a vec of png-encoded
 /// bytes that represent the captured image.
-pub async fn capture_screenshot() -> Result<(Vec<u8>, u32, u32), image::ImageError> {
+pub async fn capture_screenshot() -> Result<(Buffer, Dimension, Dimension), image::ImageError> {
     info!("kyoyu: setup: start");
 
     match scrap::Display::all() {
@@ -33,7 +35,7 @@ pub async fn capture_screenshot() -> Result<(Vec<u8>, u32, u32), image::ImageErr
 
             info!("kyoyu: output: dimensions: {}x{} {}x{}", x, y, w, h);
 
-            let mut canvas: image::RgbImage = image::ImageBuffer::new(w as u32, h as u32);
+            let mut canvas: image::RgbImage = image::ImageBuffer::new(w as Dimension, h as Dimension);
             // BGR buffers
             for (buffer, ix, iy, iw, ih) in captures {
                 let stride = buffer.len() / ih;
@@ -49,12 +51,12 @@ pub async fn capture_screenshot() -> Result<(Vec<u8>, u32, u32), image::ImageErr
                         // let pixel =
                         //     image::Rgba([buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]]);
                         let pixel = image::Rgb([buffer[i], buffer[i + 1], buffer[i + 2]]);
-                        canvas.put_pixel((ix + nx) as u32, (iy + ny) as u32, pixel);
+                        canvas.put_pixel((ix + nx) as Dimension, (iy + ny) as Dimension, pixel);
                     }
                 }
             }
 
-            Ok((canvas.into_raw(), w as u32, h as u32))
+            Ok((canvas.into_raw(), w as Dimension, h as Dimension))
         }
         Err(_) => panic!("kyoyu: display: couldn't get all displays"),
     }
@@ -64,7 +66,7 @@ pub async fn capture_screenshot() -> Result<(Vec<u8>, u32, u32), image::ImageErr
 /// bounds
 fn capture_all_displays(
     displays: Vec<scrap::Display>,
-) -> Vec<(Vec<u8>, usize, usize, usize, usize)> {
+) -> Vec<(Buffer, usize, usize, usize, usize)> {
     let mut captures = vec![];
     for display in displays {
         let x = display.x();
@@ -77,7 +79,7 @@ fn capture_all_displays(
 }
 
 /// Capture the display. Returns a buffer.
-fn capture_display(display: scrap::Display) -> Vec<u8> {
+fn capture_display(display: scrap::Display) -> Buffer {
     let one_second = Duration::new(1, 0);
     let one_frame = one_second / 60;
 
@@ -114,7 +116,7 @@ fn capture_display(display: scrap::Display) -> Vec<u8> {
 }
 
 #[allow(dead_code)]
-fn flip_buffer(buffer: &Vec<u8>, w: usize, h: usize, alpha: bool) -> Vec<u8> {
+fn flip_buffer(buffer: &Buffer, w: usize, h: usize, alpha: bool) -> Buffer {
     info!("kyoyu: buffer: flip: input = {}", buffer.len());
     let bytes = if alpha { 4 } else { 3 };
     let mut flipped = Vec::with_capacity(w * h * bytes);

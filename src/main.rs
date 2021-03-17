@@ -1,5 +1,6 @@
 extern crate directories;
 extern crate iced;
+extern crate iced_native;
 extern crate image;
 #[macro_use]
 extern crate log;
@@ -31,7 +32,10 @@ fn main() -> iced::Result {
         fs::create_dir_all(path).expect("kyoyu: config: couldn't recursively create directory");
         path.join(Path::new("config.toml"))
     };
-    info!("kyoyu: config: eventually load from: {}", config_path.to_str().unwrap());
+    info!(
+        "kyoyu: config: eventually load from: {}",
+        config_path.to_str().unwrap()
+    );
 
     info!("main: booting");
     ui::run()

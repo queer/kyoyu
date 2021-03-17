@@ -1,15 +1,25 @@
+pub mod cap;
+pub mod zoomable_image;
+
+pub use zoomable_image::ZoomableImage;
+
 use crate::capture::screenshot;
 use crate::utils;
 use crate::utils::CaptureStatus;
+use crate::utils::{Buffer, Dimension};
+
+use self::cap::Cap;
 
 use iced::Application;
 
 #[derive(Clone, Debug)]
 pub enum Message {
     CaptureRequested,
-    CaptureComplete(Vec<u8>, u32, u32),
-    CaptureEncoded(Vec<u8>),
+    CaptureComplete(Buffer, Dimension, Dimension),
+    CaptureEncoded(Buffer),
     CaptureFailed(String),
+
+    CaptureZoomChanged(bool),
 }
 
 pub fn run() -> iced::Result {
@@ -20,9 +30,7 @@ pub fn run() -> iced::Result {
 struct Ui {
     /// A buffer of png-encoded bytes representing the last full screen
     /// capture.
-    screen_buffer: Option<Vec<u8>>,
-    width: u32,
-    height: u32,
+    cap: Option<Cap>,
     /// The state of the capture button.
     capture_button: iced::button::State,
     /// The last error message
@@ -44,18 +52,8 @@ impl iced::Application for Ui {
     }
 
     fn view(&mut self) -> iced::Element<Self::Message> {
-        let image = if let Some(buffer) = &self.screen_buffer {
-            info!("kyoyu: ui: rendering buffer len={}", buffer.len());
-            // We can't pass a reference to the buffer to the image, so we
-            // have to clone it here :<
-            // iced::Container::new(iced::Image::new(iced::image::Handle::from_memory(
-            //     buffer.clone(),
-            // )))
-            iced::Container::new(iced::Image::new(iced::image::Handle::from_pixels(
-                self.width,
-                self.height,
-                buffer.clone(),
-            )))
+        let image = if let Some(cap) = &mut self.cap {
+            iced::Container::new(cap.view())
         } else {
             iced::Container::new(iced::Text::new("no screenshot yet"))
         };
@@ -80,6 +78,7 @@ impl iced::Application for Ui {
             )
             .push(image)
             .spacing(20)
+            .padding(20)
             .into()
     }
 
@@ -104,8 +103,7 @@ impl iced::Application for Ui {
                 info!("kyoyu: ui: capture_complete");
                 self.capture_status = CaptureStatus::EncodingBuffer;
                 self.last_error = "displays captured without error".to_string();
-                self.width = w;
-                self.height = h;
+                self.cap = Some(Cap::new(w, h, buffer.clone(), false));
 
                 // TODO: Can we avoid cloning this buffer?
                 iced::Command::perform(
@@ -125,7 +123,11 @@ impl iced::Application for Ui {
             Message::CaptureEncoded(buffer) => {
                 info!("kyoyu: ui: buffer encoded");
                 self.capture_status = CaptureStatus::Captured;
-                self.screen_buffer = Some(buffer);
+                if let Some(cap) = &mut self.cap {
+                    cap.put_buffer(buffer);
+                } else {
+                    panic!("kyoyu: ui: cap: couldn't set buffer: no cap");
+                }
                 self.last_error = "buffer encoded without error".to_string();
 
                 iced::Command::none()
@@ -135,7 +137,15 @@ impl iced::Application for Ui {
                 self.last_error = err;
 
                 iced::Command::none()
-            } // _ => iced::Command::none(),
+            }
+            Message::CaptureZoomChanged(state) => {
+                info!("kyoyu: ui: capture: zoom: {}", state);
+                if let Some(cap) = &mut self.cap {
+                    cap.toggle_zoom();
+                }
+                iced::Command::none()
+            }
+            // _ => iced::Command::none(),
         }
     }
 }

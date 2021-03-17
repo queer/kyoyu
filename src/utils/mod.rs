@@ -1,8 +1,11 @@
+pub mod types;
+pub use types::*;
+
 pub async fn encode_buffer_to_png(
-    buffer: Vec<u8>,
-    w: u32,
-    h: u32,
-) -> Result<Vec<u8>, image::ImageError> {
+    buffer: Buffer,
+    w: Dimension,
+    h: Dimension,
+) -> Result<Buffer, image::ImageError> {
     info!("kyoyu: utils: encode: buffer={} {}x{}", buffer.len(), w, h);
     // Flip RGB -> BGRA
     let mut out = Vec::with_capacity(buffer.len());
