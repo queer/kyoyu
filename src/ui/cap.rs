@@ -52,10 +52,6 @@ impl Cap {
         self.buffer.clone()
     }
 
-    pub fn put_buffer(&mut self, buffer: Buffer) {
-        self.buffer = buffer;
-    }
-
     pub fn toggle_zoom(&mut self) {
         self.zoom = !self.zoom;
     }

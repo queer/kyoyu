@@ -16,7 +16,7 @@ use iced::Application;
 pub enum Message {
     CaptureRequested,
     CaptureComplete(Buffer, Dimension, Dimension),
-    CaptureEncoded(Buffer),
+    CaptureEncoded(Buffer, Dimension, Dimension),
     CaptureFailed(String),
 
     CaptureZoomChanged(bool),
@@ -103,7 +103,6 @@ impl iced::Application for Ui {
                 info!("kyoyu: ui: capture_complete");
                 self.capture_status = CaptureStatus::EncodingBuffer;
                 self.last_error = "displays captured without error".to_string();
-                self.cap = Some(Cap::new(w, h, buffer.clone(), false));
 
                 // TODO: Can we avoid cloning this buffer?
                 iced::Command::perform(
@@ -111,7 +110,7 @@ impl iced::Application for Ui {
                     |result| {
                         info!("kyoyu: ui: encoded buffer");
                         match result {
-                            Ok(buffer) => Message::CaptureEncoded(buffer),
+                            Ok((buffer, w, h)) => Message::CaptureEncoded(buffer, w, h),
                             Err(err) => Message::CaptureFailed(String::from(&format!(
                                 "couldn't encode buffer: {:#?}",
                                 err
@@ -120,14 +119,10 @@ impl iced::Application for Ui {
                     },
                 )
             }
-            Message::CaptureEncoded(buffer) => {
+            Message::CaptureEncoded(buffer, w, h) => {
                 info!("kyoyu: ui: buffer encoded");
+                self.cap = Some(Cap::new(w, h, buffer.clone(), false));
                 self.capture_status = CaptureStatus::Captured;
-                if let Some(cap) = &mut self.cap {
-                    cap.put_buffer(buffer);
-                } else {
-                    panic!("kyoyu: ui: cap: couldn't set buffer: no cap");
-                }
                 self.last_error = "buffer encoded without error".to_string();
 
                 iced::Command::none()

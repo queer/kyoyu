@@ -5,7 +5,7 @@ pub async fn encode_buffer_to_png(
     buffer: Buffer,
     w: Dimension,
     h: Dimension,
-) -> Result<Buffer, image::ImageError> {
+) -> Result<(Buffer, Dimension, Dimension), image::ImageError> {
     info!("kyoyu: utils: encode: buffer={} {}x{}", buffer.len(), w, h);
     // Flip RGB -> BGRA
     let mut out = Vec::with_capacity(buffer.len());
@@ -18,7 +18,7 @@ pub async fn encode_buffer_to_png(
             0xFF,
         ]);
     }
-    Ok(out)
+    Ok((out, w, h))
 }
 
 pub enum CaptureStatus {
